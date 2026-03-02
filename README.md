@@ -81,3 +81,12 @@ Simply connect your GitHub repository to **Vercel** or **Netlify**. They will au
 
 ---
 Developed with ❤️ by Antigravity.
+## 🔐 Admin Configuration
+To access the (Manual) Map Alignment and House Pinning tools:
+1. **First Login**: Sign in with Google on the app. All new users are automatically assigned a `guest` role in Firestore.
+2. **Assign Admin**: 
+   - Open your [Firebase Console](https://console.firebase.google.com/).
+   - Navigate to **Firestore Database** -> **users** collection.
+   - Find your user document (match by `email` or `uid`).
+   - Change the `role` field from `"guest"` to `"admin"`.
+3. **Refresh**: After manual update, refresh the app. The **Admin** button will now appear in the top-right corner.

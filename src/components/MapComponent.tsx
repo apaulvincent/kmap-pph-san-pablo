@@ -15,6 +15,7 @@ import {
     useMap,
     useMapEvents
 } from 'react-leaflet';
+import { useAuth } from '../context/AuthContext';
 import type { LocationCoords } from '../data/blocks';
 import { MAP_CENTER } from '../data/blocks';
 import { db } from '../services/firebase';
@@ -99,7 +100,7 @@ const MapController: React.FC<{
 
       if (onCalc) onCalc(distText, durText);
     } else if (start) {
-        map.setView([start.lat, start.lng], 19);
+        map.setView([start.lat, start.lng], 22);
     }
   }, [start, end, map, onCalc]);
 
@@ -108,7 +109,7 @@ const MapController: React.FC<{
     if (centerOnInit && !hasCenteredOnce) {
         // If we are still on default MAP_CENTER but firebase isn't loaded yet,
         // we might want to wait. But if Firebase IS loaded, we definitely center.
-        map.setView([centerOnInit.lat, centerOnInit.lng], 19);
+        map.setView([centerOnInit.lat, centerOnInit.lng], 22);
         setHasCenteredOnce(true);
     }
   }, [centerOnInit, hasCenteredOnce, map]);
@@ -121,6 +122,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
   destination,
   onPathCalculated 
 }) => {
+  const { isAdmin } = useAuth();
   const [adminMode, setAdminMode] = useState(false);
   const [isMoveMode, setIsMoveMode] = useState(false);
   const [isResizeMode, setIsResizeMode] = useState(false);
@@ -216,19 +218,23 @@ const MapComponent: React.FC<MapComponentProps> = ({
     <Box sx={containerStyle}>
       <MapContainer 
         center={[MAP_CENTER.lat, MAP_CENTER.lng]} 
-        zoom={19} 
+        zoom={22} 
+        maxZoom={25}
         scrollWheelZoom={true} 
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={25}
+          maxNativeZoom={19}
         />
 
         <ImageOverlay
           url="/kmap.png"
           bounds={leafletBounds}
           opacity={overlayOpacity}
+          className="sharpen-overlay"
         />
 
         {/* Resize Nodes */}
@@ -305,35 +311,37 @@ const MapComponent: React.FC<MapComponentProps> = ({
       </MapContainer>
 
       {/* Admin Toggle */}
-      <Button
-        variant="contained"
-        size="small"
-        startIcon={<Settings size={14} />}
-        onClick={() => {
-            if (adminMode) {
-                setIsMoveMode(false);
-                setIsResizeMode(false);
-            }
-            setAdminMode(!adminMode);
-        }}
-        sx={{
-            position: 'absolute',
-            top: 24,
-            right: 24,
-            zIndex: 2000,
-            bgcolor: adminMode ? 'secondary.main' : 'rgba(255,255,255,0.9)',
-            backdropFilter: 'blur(10px)',
-            color: adminMode ? 'white' : 'text.primary',
-            borderRadius: 1,
-            border: '1px solid rgba(0,0,0,0.1)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            '&:hover': { bgcolor: adminMode ? 'secondary.dark' : '#fff' }
-        }}
-      >
-        {adminMode ? 'Close' : 'Admin'}
-      </Button>
+      {isAdmin && (
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<Settings size={14} />}
+          onClick={() => {
+              if (adminMode) {
+                  setIsMoveMode(false);
+                  setIsResizeMode(false);
+              }
+              setAdminMode(!adminMode);
+          }}
+          sx={{
+              position: 'absolute',
+              top: 24,
+              right: 24,
+              zIndex: 2000,
+              bgcolor: adminMode ? 'secondary.main' : 'rgba(255,255,255,0.9)',
+              backdropFilter: 'blur(10px)',
+              color: adminMode ? 'white' : 'text.primary',
+              borderRadius: 1,
+              border: '1px solid rgba(0,0,0,0.1)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              '&:hover': { bgcolor: adminMode ? 'secondary.dark' : '#fff' }
+          }}
+        >
+          {adminMode ? 'Close' : 'Admin'}
+        </Button>
+      )}
 
-      {adminMode && (
+      {isAdmin && adminMode && (
           <AdminTool 
             bounds={overlayBounds} 
             onBoundsChange={setOverlayBounds} 

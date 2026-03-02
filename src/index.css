@@ -30,8 +30,15 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-in {
@@ -48,6 +55,27 @@ body {
 
 /* Custom overlay for Google Maps markers labels */
 .gm-style-iw {
-  border-radius: 12px !important;
+  border-radius: 4px !important;
   padding: 8px !important;
+}
+
+/* Force sharp rendering for subdivision image overlay */
+.leaflet-image-layer,
+.sharpen-overlay {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  /* Remove pixelated if it feels too blocky with the new high-res source */
+  /* image-rendering: pixelated; */
+  /* Optional: Add slightly more pop to the image */
+  filter: contrast(110%) saturate(115%) brightness(1.02);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
