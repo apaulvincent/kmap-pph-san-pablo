@@ -27,17 +27,17 @@ const createIcon = (color: string) => L.divIcon({
     html: `
         <div style="
             background-color: ${color};
-            width: 14px;
-            height: 14px;
+            width: 24px;
+            height: 24px;
             border-radius: 50% 50% 50% 0;
             transform: rotate(-45deg);
-            border: 2px solid white;
-            box-shadow: 0 0 4px rgba(0,0,0,0.4);
+            border: 3px solid white;
+            box-shadow: 0 0 6px rgba(0,0,0,0.5);
         "></div>
     `,
-    iconSize: [20, 20],
-    iconAnchor: [10, 20],
-    popupAnchor: [0, -20]
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -30]
 });
 
 const startIcon = createIcon('#22c55e'); // Green for Start
