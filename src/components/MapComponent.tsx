@@ -1,8 +1,10 @@
 import { Box, Button } from '@mui/material';
+import { addDoc, collection, doc, onSnapshot, setDoc } from 'firebase/firestore';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Settings } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import {
     ImageOverlay,
     MapContainer,
@@ -15,6 +17,7 @@ import {
 } from 'react-leaflet';
 import type { LocationCoords } from '../data/blocks';
 import { MAP_CENTER } from '../data/blocks';
+import { db } from '../services/firebase';
 import AdminTool from './AdminTool';
 
 // Fix for default marker icons in Leaflet + Vite/React
@@ -47,10 +50,12 @@ const MapController: React.FC<{
     onCalc?: (dist: string, dur: string) => void,
     onMapClick: (lat: number, lng: number) => void,
     onDragOverlay?: (deltaLat: number, deltaLng: number) => void,
-    isMoveMode?: boolean
-}> = ({ start, end, onCalc, onMapClick, onDragOverlay, isMoveMode }) => {
+    isMoveMode?: boolean,
+    centerOnInit?: { lat: number, lng: number }
+}> = ({ start, end, onCalc, onMapClick, onDragOverlay, isMoveMode, centerOnInit }) => {
   const map = useMap();
   const [startPoint, setStartPoint] = useState<L.LatLng | null>(null);
+  const [hasCenteredOnce, setHasCenteredOnce] = useState(false);
   
   useMapEvents({
       click(e) {
@@ -94,9 +99,19 @@ const MapController: React.FC<{
 
       if (onCalc) onCalc(distText, durText);
     } else if (start) {
-        map.setView([start.lat, start.lng], 18);
+        map.setView([start.lat, start.lng], 19);
     }
   }, [start, end, map, onCalc]);
+
+  useEffect(() => {
+    // Only center once, and ONLY when we have a valid coordinate (preferably from Firebase)
+    if (centerOnInit && !hasCenteredOnce) {
+        // If we are still on default MAP_CENTER but firebase isn't loaded yet,
+        // we might want to wait. But if Firebase IS loaded, we definitely center.
+        map.setView([centerOnInit.lat, centerOnInit.lng], 19);
+        setHasCenteredOnce(true);
+    }
+  }, [centerOnInit, hasCenteredOnce, map]);
 
   return null;
 };
@@ -108,13 +123,61 @@ const MapComponent: React.FC<MapComponentProps> = ({
 }) => {
   const [adminMode, setAdminMode] = useState(false);
   const [isMoveMode, setIsMoveMode] = useState(false);
+  const [isResizeMode, setIsResizeMode] = useState(false);
+  const [hasLoadedFirebase, setHasLoadedFirebase] = useState(false);
   const [overlayBounds, setOverlayBounds] = useState({
       north: 14.05600,
       south: 14.05200,
       east: 121.28800,
       west: 121.28200
   });
+  const [overlayOpacity, setOverlayOpacity] = useState(0.6);
   const [lastPin, setLastPin] = useState<{lat: number, lng: number} | null>(null);
+
+  // 1. Listen for changes from Firebase
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "settings", "mapOverlay"), (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        if (data.bounds) setOverlayBounds(data.bounds);
+        if (data.opacity !== undefined) setOverlayOpacity(data.opacity);
+        setHasLoadedFirebase(true);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  // 2. Manual Save to Firebase
+  const handleSaveToFirebase = async () => {
+    try {
+      await setDoc(doc(db, "settings", "mapOverlay"), {
+        bounds: overlayBounds,
+        opacity: overlayOpacity,
+        updatedAt: new Date()
+      }, { merge: true });
+      toast.success("Map settings saved to Firebase!");
+    } catch (e) {
+      console.error("Error saving map settings:", e);
+      toast.error("Failed to save settings. Check console.");
+    }
+  };
+ 
+  const handleSaveLot = async (lotData: any) => {
+    try {
+      if (!lotData.block || !lotData.lot) {
+        toast.error("Block and Lot are required");
+        return;
+      }
+      await addDoc(collection(db, "lots"), {
+        ...lotData,
+        createdAt: new Date()
+      });
+      toast.success(`Lot ${lotData.block}-${lotData.lot} saved!`);
+    } catch (e) {
+      console.error("Error saving lot:", e);
+      toast.error("Error saving lot. Check console.");
+    }
+  };
 
   const handleDragOverlay = (deltaLat: number, deltaLng: number) => {
       setOverlayBounds(prev => ({
@@ -125,16 +188,35 @@ const MapComponent: React.FC<MapComponentProps> = ({
       }));
   };
 
+  const handleResizeOverlay = (handleId: string, newLat: number, newLng: number) => {
+    setOverlayBounds(prev => {
+        const newBounds = { ...prev };
+        if (handleId.includes('north')) newBounds.north = newLat;
+        if (handleId.includes('south')) newBounds.south = newLat;
+        if (handleId.includes('east')) newBounds.east = newLng;
+        if (handleId.includes('west')) newBounds.west = newLng;
+        return newBounds;
+    });
+  };
+
   const leafletBounds: L.LatLngBoundsExpression = [
       [overlayBounds.south, overlayBounds.west],
       [overlayBounds.north, overlayBounds.east]
+  ];
+
+  // Corners for resize nodes
+  const nodes = [
+    { id: 'north-west', position: [overlayBounds.north, overlayBounds.west] },
+    { id: 'north-east', position: [overlayBounds.north, overlayBounds.east] },
+    { id: 'south-west', position: [overlayBounds.south, overlayBounds.west] },
+    { id: 'south-east', position: [overlayBounds.south, overlayBounds.east] },
   ];
 
   return (
     <Box sx={containerStyle}>
       <MapContainer 
         center={[MAP_CENTER.lat, MAP_CENTER.lng]} 
-        zoom={17} 
+        zoom={19} 
         scrollWheelZoom={true} 
         style={{ height: '100%', width: '100%' }}
       >
@@ -146,8 +228,29 @@ const MapComponent: React.FC<MapComponentProps> = ({
         <ImageOverlay
           url="/kmap.png"
           bounds={leafletBounds}
-          opacity={0.6}
+          opacity={overlayOpacity}
         />
+
+        {/* Resize Nodes */}
+        {adminMode && isResizeMode && nodes.map(node => (
+            <Marker 
+              key={node.id} 
+              position={node.position as L.LatLngExpression}
+              draggable={true}
+              eventHandlers={{
+                drag: (e) => {
+                  const latLng = e.target.getLatLng();
+                  handleResizeOverlay(node.id, latLng.lat, latLng.lng);
+                }
+              }}
+              icon={L.divIcon({
+                className: 'resize-node',
+                html: `<div style="width: 12px; height: 12px; background: #e11d48; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.3);"></div>`,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+              })}
+            />
+        ))}
 
         {startLocation && (
           <Marker position={[startLocation.lat, startLocation.lng]}>
@@ -194,6 +297,10 @@ const MapComponent: React.FC<MapComponentProps> = ({
           onMapClick={(lat, lng) => setLastPin({lat, lng})}
           onDragOverlay={handleDragOverlay}
           isMoveMode={isMoveMode && adminMode}
+          centerOnInit={hasLoadedFirebase ? {
+            lat: (overlayBounds.north + overlayBounds.south) / 2,
+            lng: (overlayBounds.east + overlayBounds.west) / 2
+          } : undefined}
         />
       </MapContainer>
 
@@ -203,7 +310,10 @@ const MapComponent: React.FC<MapComponentProps> = ({
         size="small"
         startIcon={<Settings size={14} />}
         onClick={() => {
-            if (adminMode) setIsMoveMode(false);
+            if (adminMode) {
+                setIsMoveMode(false);
+                setIsResizeMode(false);
+            }
             setAdminMode(!adminMode);
         }}
         sx={{
@@ -214,7 +324,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
             bgcolor: adminMode ? 'secondary.main' : 'rgba(255,255,255,0.9)',
             backdropFilter: 'blur(10px)',
             color: adminMode ? 'white' : 'text.primary',
-            borderRadius: 2,
+            borderRadius: 1,
             border: '1px solid rgba(0,0,0,0.1)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             '&:hover': { bgcolor: adminMode ? 'secondary.dark' : '#fff' }
@@ -227,9 +337,21 @@ const MapComponent: React.FC<MapComponentProps> = ({
           <AdminTool 
             bounds={overlayBounds} 
             onBoundsChange={setOverlayBounds} 
+            opacity={overlayOpacity}
+            onOpacityChange={setOverlayOpacity}
+            onSave={handleSaveToFirebase}
+            onSaveLot={handleSaveLot}
             lastClickedCoord={lastPin}
             isMoveMode={isMoveMode}
-            onToggleMoveMode={() => setIsMoveMode(!isMoveMode)}
+            onToggleMoveMode={() => {
+                setIsMoveMode(!isMoveMode);
+                if (!isMoveMode) setIsResizeMode(false);
+            }}
+            isResizeMode={isResizeMode}
+            onToggleResizeMode={() => {
+                setIsResizeMode(!isResizeMode);
+                if (!isResizeMode) setIsMoveMode(false);
+            }}
           />
       )}
     </Box>

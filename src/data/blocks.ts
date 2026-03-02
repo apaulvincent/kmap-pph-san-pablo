@@ -7,6 +7,7 @@ export interface LocationCoords {
 export interface BlockLot {
   block: string;
   lot: string;
+  phase?: string;
   coords: LocationCoords;
 }
 

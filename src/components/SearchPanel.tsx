@@ -11,20 +11,24 @@ import {
     TextField,
     Typography
 } from '@mui/material';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import {
     Clock,
     LogIn,
     LogOut,
     Map as MapIcon,
     Navigation,
+    RotateCcw,
     Route,
     Search,
     X
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
-import type { LocationCoords } from '../data/blocks';
+import type { BlockLot, LocationCoords } from '../data/blocks';
 import { SAMPLE_BLOCKS } from '../data/blocks';
+import { db } from '../services/firebase';
 
 interface SearchPanelProps {
   onSearch: (start: LocationCoords | null, end: LocationCoords | null) => void;
@@ -39,7 +43,22 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, 
   const [startLot, setStartLot] = useState("");
   const [destBlock, setDestBlock] = useState("");
   const [destLot, setDestLot] = useState("");
+  const [destPhase, setDestPhase] = useState("");
   const [isCurrentLocation, setIsCurrentLocation] = useState(false);
+  const [lots, setLots] = useState<BlockLot[]>([]);
+
+  // Sync lots from Firebase
+  useEffect(() => {
+    const q = query(collection(db, "lots"));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const dbLots: BlockLot[] = [];
+      snapshot.forEach((doc) => {
+        dbLots.push(doc.data() as BlockLot);
+      });
+      setLots(dbLots);
+    });
+    return () => unsub();
+  }, []);
 
   const handleGetCurrentLocation = () => {
     if ("geolocation" in navigator) {
@@ -53,14 +72,22 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, 
         // Find destination if set
         const dest = findLot(destBlock, destLot);
         onSearch(coords, dest);
+        toast.success("GPS Location acquired!");
+      }, () => {
+        toast.error("Failed to get location.");
       });
     } else {
-      alert("Geolocation not supported");
+      toast.error("Geolocation not supported");
     }
   };
 
-  const findLot = (block: string, lot: string): LocationCoords | null => {
-    const found = SAMPLE_BLOCKS.find(b => b.block === block && b.lot === lot);
+  const findLot = (block: string, lot: string, phase?: string): LocationCoords | null => {
+    const allLots = lots.length > 0 ? lots : SAMPLE_BLOCKS;
+    const found = allLots.find(b => 
+        b.block === block && 
+        b.lot === lot && 
+        (!phase || b.phase === phase)
+    );
     return found ? found.coords : null;
   };
 
@@ -69,12 +96,12 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, 
       ? null // already set via geolocation
       : findLot(startBlock, startLot);
     
-    const end = findLot(destBlock, destLot);
+    const end = findLot(destBlock, destLot, destPhase);
 
     if (end) {
       onSearch(start, end);
     } else {
-      alert("Lot not found in demo data. Please try Block 1, Lot 1 or Block 12, Lot 5.");
+      toast.error("Lot not found. Please check Block, Lot and Phase.");
     }
   };
 
@@ -83,6 +110,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, 
     setStartLot("");
     setDestBlock("");
     setDestLot("");
+    setDestPhase("");
     setIsCurrentLocation(false);
     onClear();
   };
@@ -104,7 +132,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, 
           p: 3,
           background: alpha('#ffffff', 0.85),
           backdropFilter: 'blur(20px)',
-          borderRadius: 4,
+          borderRadius: 1,
           border: '1px solid rgba(255, 255, 255, 0.4)',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
         }}
@@ -163,7 +191,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, 
                 startIcon={<Navigation size={16} />}
                 onClick={handleGetCurrentLocation}
                 size="small"
-                sx={{ borderRadius: 2 }}
+                sx={{ borderRadius: 1 }}
               >
                 Current GPS
               </Button>
@@ -173,7 +201,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, 
                 startIcon={<Search size={16} />}
                 onClick={() => setIsCurrentLocation(false)}
                 size="small"
-                sx={{ borderRadius: 2 }}
+                sx={{ borderRadius: 1 }}
               >
                 Manual
               </Button>
@@ -205,7 +233,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, 
                 color="info" 
                 variant="outlined" 
                 onDelete={() => setIsCurrentLocation(false)}
-                sx={{ width: '100%', borderRadius: 2 }}
+                sx={{ width: '100%', borderRadius: 1 }}
               />
             )}
           </Box>
@@ -214,21 +242,31 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, 
             <Typography variant="subtitle1" gutterBottom sx={{ fontSize: '0.875rem', fontWeight: 700, opacity: 0.6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               Destination House
             </Typography>
-            <Stack direction="row" spacing={2}>
+            <Stack spacing={2}>
+              <Stack direction="row" spacing={2}>
+                <TextField
+                  label="Block"
+                  size="small"
+                  value={destBlock}
+                  onChange={(e) => setDestBlock(e.target.value)}
+                  placeholder="e.g. 12"
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  label="Lot"
+                  size="small"
+                  value={destLot}
+                  onChange={(e) => setDestLot(e.target.value)}
+                  placeholder="e.g. 5"
+                  sx={{ flex: 1 }}
+                />
+              </Stack>
               <TextField
-                label="Block"
+                label="Phase"
                 size="small"
-                value={destBlock}
-                onChange={(e) => setDestBlock(e.target.value)}
-                placeholder="e.g. 12"
-                sx={{ flex: 1 }}
-              />
-              <TextField
-                label="Lot"
-                size="small"
-                value={destLot}
-                onChange={(e) => setDestLot(e.target.value)}
-                placeholder="e.g. 5"
+                value={destPhase}
+                onChange={(e) => setDestPhase(e.target.value)}
+                placeholder="e.g. Phase 1"
                 sx={{ flex: 1 }}
               />
             </Stack>
@@ -248,13 +286,31 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, 
             Locate House & Route
           </Button>
 
+          <Button 
+            variant="outlined" 
+            fullWidth 
+            onClick={handleClear}
+            startIcon={<RotateCcw size={16} />}
+            sx={{ 
+              py: 1, 
+              color: 'text.secondary',
+              borderColor: 'rgba(0,0,0,0.1)',
+              '&:hover': { 
+                bgcolor: alpha('#000000', 0.02),
+                borderColor: 'rgba(0,0,0,0.2)'
+              }
+            }}
+          >
+            Reset
+          </Button>
+
           {distance && (
             <Fade in={!!distance}>
               <Paper 
                 sx={{ 
                   p: 2, 
                   bgcolor: alpha('#1e3a8a', 0.04), 
-                  borderRadius: 3,
+                  borderRadius: 1,
                   border: '1px solid rgba(30, 58, 138, 0.1)'
                 }}
               >

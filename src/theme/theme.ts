@@ -1,4 +1,4 @@
-import { createTheme, alpha } from '@mui/material/styles';
+import { alpha, createTheme } from '@mui/material/styles';
 
 const primaryColor = '#1e3a8a'; // Deep blue
 const secondaryColor = '#f59e0b'; // Amber
@@ -34,7 +34,7 @@ export const theme = createTheme({
     },
   },
   shape: {
-    borderRadius: 16,
+    borderRadius: 4,
   },
   components: {
     MuiButton: {

@@ -1,5 +1,6 @@
 import { Box, CssBaseline, ThemeProvider } from '@mui/material';
 import { useState } from 'react';
+import { Toaster } from 'react-hot-toast';
 import MapComponent from './components/MapComponent';
 import SearchPanel from './components/SearchPanel';
 import { AuthProvider } from './context/AuthContext';
@@ -28,6 +29,7 @@ function App() {
     <AuthProvider>
       <ThemeProvider theme={theme}>
         <CssBaseline />
+        <Toaster position="top-center" />
         <Box sx={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
           
           {/* Main FREE Map (OpenStreetMap + Leaflet) */}
@@ -50,7 +52,7 @@ function App() {
 
           {/* Settings / Manual Centering (Optional) */}
           <Box sx={{ position: 'absolute', bottom: 24, right: 24, zIndex: 1000, pointerEvents: 'none' }}>
-              <Box sx={{ bgcolor: 'background.paper', p: 1, borderRadius: 2, border: '1px solid rgba(0,0,0,0.1)', pointerEvents: 'auto' }}>
+              <Box sx={{ bgcolor: 'background.paper', p: 1, borderRadius: 1, border: '1px solid rgba(0,0,0,0.1)', pointerEvents: 'auto' }}>
                 Map Engine: **OpenStreetMap (Free Stack)**
               </Box>
           </Box>
