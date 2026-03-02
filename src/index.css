@@ -59,15 +59,15 @@ body {
   padding: 8px !important;
 }
 
-/* Force sharp rendering for subdivision image overlay */
+/* High-quality rendering for subdivision image overlay */
 .leaflet-image-layer,
 .sharpen-overlay {
+  /* Use default browser interpolation for smoother scaling at extreme zooms */
+  image-rendering: auto;
+  /* Webkit contrast optimization helps with text clarity */
   image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
-  /* Remove pixelated if it feels too blocky with the new high-res source */
-  /* image-rendering: pixelated; */
-  /* Optional: Add slightly more pop to the image */
-  filter: contrast(110%) saturate(115%) brightness(1.02);
+  /* Higher contrast and saturation helps defined house numbers and borders */
+  filter: contrast(125%) saturate(110%) brightness(1.03);
 }
 
 html,

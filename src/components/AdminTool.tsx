@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { Copy, Home, Move, Save, Settings } from 'lucide-react';
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 
 interface AdminToolProps {
   bounds: {
@@ -47,12 +48,14 @@ const AdminTool: React.FC<AdminToolProps> = ({
   const [blockName, setBlockName] = useState("");
   const [lotName, setLotName] = useState("");
   const [phase, setPhase] = useState("");
+  const [label, setLabel] = useState("");
 
   const handleCopyCoord = () => {
     if (!lastClickedCoord) return;
-    const jsonStr = `{ block: "${blockName}", lot: "${lotName}", coords: { lat: ${lastClickedCoord.lat.toFixed(6)}, lng: ${lastClickedCoord.lng.toFixed(6)}, label: "Block ${blockName} Lot ${lotName}" } },`;
+    const finalLabel = label.trim() || `Block ${blockName} Lot ${lotName}`;
+    const jsonStr = `{ block: "${blockName}", lot: "${lotName}", phase: "${phase}", coords: { lat: ${lastClickedCoord.lat.toFixed(6)}, lng: ${lastClickedCoord.lng.toFixed(6)}, label: "${finalLabel}" } },`;
     navigator.clipboard.writeText(jsonStr);
-    alert("Copied entry to clipboard!");
+    toast.success("Copied to clipboard!");
   };
 
   return (
@@ -176,13 +179,30 @@ const AdminTool: React.FC<AdminToolProps> = ({
                 <TextField size="small" placeholder="Lot" value={lotName} onChange={(e) => setLotName(e.target.value)} />
               </Stack>
               <TextField size="small" fullWidth placeholder="Phase (e.g. Phase 1)" value={phase} onChange={(e) => setPhase(e.target.value)} />
+              <TextField size="small" fullWidth placeholder="Label (Optional)" value={label} onChange={(e) => setLabel(e.target.value)} />
               
               <Stack direction="row" spacing={1}>
                 <Button 
                   variant="contained" 
                   size="small" 
                   startIcon={<Home size={14} />} 
-                  onClick={() => onSaveLot({ block: blockName, lot: lotName, phase, coords: { lat: lastClickedCoord.lat, lng: lastClickedCoord.lng, label: `Block ${blockName} Lot ${lotName}` } })}
+                  onClick={async () => {
+                      await onSaveLot({ 
+                          block: blockName, 
+                          lot: lotName, 
+                          phase, 
+                          coords: { 
+                              lat: lastClickedCoord.lat, 
+                              lng: lastClickedCoord.lng, 
+                              label: label.trim() || `Block ${blockName} Lot ${lotName}` 
+                          } 
+                      });
+                      // Clear fields after successful save
+                      setBlockName("");
+                      setLotName("");
+                      setPhase("");
+                      setLabel("");
+                  }}
                   fullWidth
                   color="info"
                   sx={{ borderRadius: 1 }}

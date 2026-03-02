@@ -100,7 +100,7 @@ const MapController: React.FC<{
 
       if (onCalc) onCalc(distText, durText);
     } else if (start) {
-        map.setView([start.lat, start.lng], 22);
+        map.setView([start.lat, start.lng], 24);
     }
   }, [start, end, map, onCalc]);
 
@@ -109,7 +109,7 @@ const MapController: React.FC<{
     if (centerOnInit && !hasCenteredOnce) {
         // If we are still on default MAP_CENTER but firebase isn't loaded yet,
         // we might want to wait. But if Firebase IS loaded, we definitely center.
-        map.setView([centerOnInit.lat, centerOnInit.lng], 22);
+        map.setView([centerOnInit.lat, centerOnInit.lng], 24);
         setHasCenteredOnce(true);
     }
   }, [centerOnInit, hasCenteredOnce, map]);
@@ -218,20 +218,20 @@ const MapComponent: React.FC<MapComponentProps> = ({
     <Box sx={containerStyle}>
       <MapContainer 
         center={[MAP_CENTER.lat, MAP_CENTER.lng]} 
-        zoom={22} 
-        maxZoom={25}
+        zoom={24} 
+        maxZoom={24}
         scrollWheelZoom={true} 
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maxZoom={25}
+          maxZoom={24}
           maxNativeZoom={19}
         />
 
         <ImageOverlay
-          url="/kmap.png"
+          url="/kmap.jpg"
           bounds={leafletBounds}
           opacity={overlayOpacity}
           className="sharpen-overlay"
