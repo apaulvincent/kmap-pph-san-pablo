@@ -14,8 +14,8 @@ function App() {
   const [duration, setDuration] = useState('');
 
   const handleSearch = (start: LocationCoords | null, end: LocationCoords | null) => {
-    if (start) setStartLocation(start);
-    if (end) setDestination(end);
+    setStartLocation(start);
+    setDestination(end);
   };
 
   const handleClear = () => {

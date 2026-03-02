@@ -21,17 +21,28 @@ import { MAP_CENTER } from '../data/blocks';
 import { db } from '../services/firebase';
 import AdminTool from './AdminTool';
 
-// Fix for default marker icons in Leaflet + Vite/React
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-let DefaultIcon = L.icon({
-    iconUrl: markerIcon,
-    shadowUrl: markerShadow,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41]
+// Custom SVG Icons for better visibility and reliability
+const createIcon = (color: string) => L.divIcon({
+    className: 'custom-pin',
+    html: `
+        <div style="
+            background-color: ${color};
+            width: 14px;
+            height: 14px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            border: 2px solid white;
+            box-shadow: 0 0 4px rgba(0,0,0,0.4);
+        "></div>
+    `,
+    iconSize: [20, 20],
+    iconAnchor: [10, 20],
+    popupAnchor: [0, -20]
 });
-L.Marker.prototype.options.icon = DefaultIcon;
+
+const startIcon = createIcon('#22c55e'); // Green for Start
+const destIcon = createIcon('#3b82f6');  // Blue for Destination
+const adminIcon = createIcon('#f59e0b'); // Amber for Admin Pin
 
 const containerStyle = {
   width: '100%',
@@ -100,7 +111,7 @@ const MapController: React.FC<{
 
       if (onCalc) onCalc(distText, durText);
     } else if (start) {
-        map.setView([start.lat, start.lng], 24);
+        map.setView([start.lat, start.lng], 22);
     }
   }, [start, end, map, onCalc]);
 
@@ -109,7 +120,7 @@ const MapController: React.FC<{
     if (centerOnInit && !hasCenteredOnce) {
         // If we are still on default MAP_CENTER but firebase isn't loaded yet,
         // we might want to wait. But if Firebase IS loaded, we definitely center.
-        map.setView([centerOnInit.lat, centerOnInit.lng], 24);
+        map.setView([centerOnInit.lat, centerOnInit.lng], 22);
         setHasCenteredOnce(true);
     }
   }, [centerOnInit, hasCenteredOnce, map]);
@@ -218,7 +229,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
     <Box sx={containerStyle}>
       <MapContainer 
         center={[MAP_CENTER.lat, MAP_CENTER.lng]} 
-        zoom={24} 
+        zoom={22} 
         maxZoom={24}
         scrollWheelZoom={true} 
         style={{ height: '100%', width: '100%' }}
@@ -259,15 +270,21 @@ const MapComponent: React.FC<MapComponentProps> = ({
         ))}
 
         {startLocation && (
-          <Marker position={[startLocation.lat, startLocation.lng]}>
+          <Marker 
+            position={[startLocation.lat, startLocation.lng]} 
+            icon={startIcon}
+          >
             <Popup>
-              <b>Start</b>: {startLocation.label}
+              <b>Start Point</b>: {startLocation.label}
             </Popup>
           </Marker>
         )}
 
         {destination && (
-          <Marker position={[destination.lat, destination.lng]}>
+          <Marker 
+            position={[destination.lat, destination.lng]} 
+            icon={destIcon}
+          >
             <Popup>
               <b>Destination House</b>: {destination.label}
             </Popup>
@@ -275,7 +292,10 @@ const MapComponent: React.FC<MapComponentProps> = ({
         )}
 
         {lastPin && (
-          <Marker position={[lastPin.lat, lastPin.lng]}>
+          <Marker 
+            position={[lastPin.lat, lastPin.lng]}
+            icon={adminIcon}
+          >
             <Popup>
               <b>Calibrator Pin</b><br/>
               {lastPin.lat.toFixed(6)}, {lastPin.lng.toFixed(6)}

@@ -45,6 +45,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, 
   const [destLot, setDestLot] = useState("");
   const [destPhase, setDestPhase] = useState("");
   const [isCurrentLocation, setIsCurrentLocation] = useState(false);
+  const [gpsCoords, setGpsCoords] = useState<LocationCoords | null>(null);
   const [lots, setLots] = useState<BlockLot[]>([]);
 
   // Sync lots from Firebase
@@ -69,8 +70,9 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, 
           label: "Current Location"
         };
         setIsCurrentLocation(true);
+        setGpsCoords(coords);
         // Find destination if set
-        const dest = findLot(destBlock, destLot);
+        const dest = findLot(destBlock, destLot, destPhase);
         onSearch(coords, dest);
         toast.success("GPS Location acquired!");
       }, () => {
@@ -93,7 +95,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, 
 
   const handleSearch = () => {
     const start = isCurrentLocation 
-      ? null // already set via geolocation
+      ? gpsCoords 
       : findLot(startBlock, startLot);
     
     const end = findLot(destBlock, destLot, destPhase);
@@ -112,6 +114,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, 
     setDestLot("");
     setDestPhase("");
     setIsCurrentLocation(false);
+    setGpsCoords(null);
     onClear();
   };
 
