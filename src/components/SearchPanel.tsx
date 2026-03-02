@@ -18,7 +18,8 @@ import {
     Map as MapIcon,
     Navigation,
     Route,
-    Search
+    Search,
+    X
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -27,11 +28,12 @@ import { SAMPLE_BLOCKS } from '../data/blocks';
 
 interface SearchPanelProps {
   onSearch: (start: LocationCoords | null, end: LocationCoords | null) => void;
+  onClear: () => void;
   distance: string;
   duration: string;
 }
 
-const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, distance, duration }) => {
+const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, onClear, distance, duration }) => {
   const { user, login, logout } = useAuth();
   const [startBlock, setStartBlock] = useState("");
   const [startLot, setStartLot] = useState("");
@@ -76,6 +78,15 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, distance, duration 
     }
   };
 
+  const handleClear = () => {
+    setStartBlock("");
+    setStartLot("");
+    setDestBlock("");
+    setDestLot("");
+    setIsCurrentLocation(false);
+    onClear();
+  };
+
   return (
     <Box
       sx={{
@@ -103,24 +114,40 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch, distance, duration 
             <Typography variant="h2" sx={{ fontSize: '1.25rem', color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
               <MapIcon size={20} /> KMap PPH
             </Typography>
-            {user ? (
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="caption" sx={{ fontWeight: 600 }}>{user.displayName?.split(' ')[0]}</Typography>
-                <IconButton color="primary" onClick={logout} sx={{ bgcolor: alpha('#1e3a8a', 0.05) }} size="small">
-                  <LogOut size={16} />
+            <Stack direction="row" spacing={1} alignItems="center">
+              {(startBlock || startLot || destBlock || destLot || isCurrentLocation) && (
+                <IconButton 
+                  size="small" 
+                  onClick={handleClear}
+                  sx={{ 
+                    color: 'error.main', 
+                    bgcolor: alpha('#ef4444', 0.05),
+                    '&:hover': { bgcolor: alpha('#ef4444', 0.1) }
+                  }}
+                  title="Clear All"
+                >
+                  <X size={16} />
                 </IconButton>
-              </Stack>
-            ) : (
-              <Button 
-                variant="text" 
-                size="small" 
-                startIcon={<LogIn size={14} />}
-                onClick={login}
-                sx={{ fontSize: '0.75rem', fontWeight: 700 }}
-              >
-                Sign In
-              </Button>
-            )}
+              )}
+              {user ? (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{user.displayName?.split(' ')[0]}</Typography>
+                  <IconButton color="primary" onClick={logout} sx={{ bgcolor: alpha('#1e3a8a', 0.05) }} size="small">
+                    <LogOut size={16} />
+                  </IconButton>
+                </Stack>
+              ) : (
+                <Button 
+                  variant="text" 
+                  size="small" 
+                  startIcon={<LogIn size={14} />}
+                  onClick={login}
+                  sx={{ fontSize: '0.75rem', fontWeight: 700 }}
+                >
+                  Sign In
+                </Button>
+              )}
+            </Stack>
           </Box>
 
           <Divider sx={{ opacity: 0.1 }} />

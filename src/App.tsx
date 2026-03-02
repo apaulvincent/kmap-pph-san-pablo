@@ -17,6 +17,13 @@ function App() {
     if (end) setDestination(end);
   };
 
+  const handleClear = () => {
+    setStartLocation(null);
+    setDestination(null);
+    setDistance('');
+    setDuration('');
+  };
+
   return (
     <AuthProvider>
       <ThemeProvider theme={theme}>
@@ -36,6 +43,7 @@ function App() {
           {/* Floating Search Panel */}
           <SearchPanel 
             onSearch={handleSearch}
+            onClear={handleClear}
             distance={distance}
             duration={duration} 
           />
