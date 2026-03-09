@@ -2,7 +2,7 @@
 
 KMap is a modern web application designed for residents and visitors of **PHirst Park Homes (PPH) San Pablo**. It simplifies house navigation within the subdivision by providing an interactive map that locates specific houses using Block and Lot numbers.
 
-![KMap Showcase](https://via.placeholder.com/800x450?text=KMap+PPH+San+Pablo+Showcase)
+<img width="1910" height="709" alt="image" src="https://github.com/user-attachments/assets/f6171800-e53c-4fba-ad3a-e97a0e5358d7" />
 
 ## 🌟 Key Features
 
